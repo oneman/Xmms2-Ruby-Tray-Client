@@ -11,6 +11,9 @@ RELEASE = "INTERNAL"
 
 require 'gtk2'
 require 'RNotify'
+require 'xmmsclient'
+require 'xmmsclient_glib'
+require 'glib2'
 
 # rnotify, it was really simple to install wasnt it??
 if !Notify.init(PROGRAM_NAME)
@@ -18,31 +21,59 @@ puts "failed, really its easy to install i mean come on right?? :P"
 Kernel.exit
 end
 
+begin
+	xmms = Xmms::Client.new(PROGRAM_NAME.gsub(" ","")).connect(ENV['XMMS_PATH'])
+rescue Xmms::Client::ClientError
+	puts 'Failed to connect to XMMS2 daemon.'
+	puts 'Please make sure xmms2d is running and using the correct IPC path.'
+	exit
+end
+
+# GLib mainloop integration is a breeze with the tools provided for GLib in
+# XMMS2. Just one function call sets it all up.
+xmms.add_to_glib_mainloop
+ml = GLib::MainLoop.new(nil, false)
+
 $icon = Gtk::StatusIcon.new
 
 # change to suit style
 #$icon.file = "/usr/share/pixmaps/xmms2-white-on-black.svg" # should be there!
 $icon.file = "/usr/share/pixmaps/xmms2-128.png" # Another option
-
 $icon.tooltip = PROGRAM_NAME + " VERSION " + CLIENT_VERSION.to_s + " RELEASE " + RELEASE
 
 
+#xmms.broadcast_playlist_current_pos.notifier do |res|
+#puts res
+#end
+
+
+
 # song change notification stuff / icon tooltip
-xmms2_info = ""
-old_xmms2_info = ""
-show_notification = false
-timeout = Gtk::timeout_add(5000) { 
+$notification = ""
+$label = ""
+xmms.broadcast_playback_current_id.notifier do |id|
+    playback_id = id
+
+
 xmms2_info = `xmms2 current`
 $icon.tooltip = xmms2_info.chop
 xmms2_info = "Unknown Song" if xmms2_info.length < 5
-if xmms2_info != old_xmms2_info && show_notification
- notification = Notify::Notification.new("#{xmms2_info}\n",nil,nil,nil)
- #notification.timeout = 2000
- notification.show
+if $notification == ""
+ $notification = Notify::Notification.new("#{xmms2_info}\n",nil,nil,nil)
+else
+  $notification.update("#{xmms2_info}\n",nil,nil)
 end
-old_xmms2_info = "#{xmms2_info}"
-show_notification = true
-}
+ if $label != ""
+  $label.set_markup("<span weight=\"ultrabold\" size=\"xx-large\">#{xmms2_info}</span>")
+ end
+ #notification.timeout = 2000
+ $notification.show
+
+
+    true # need to have this here
+end
+
+
 
 class Gtk::MenuItem
 	def set_callback(meth, args = [])
@@ -129,7 +160,7 @@ else
 end
 
 end
-
+$xmms = xmms
 def handle_info_window
 if $info_window_open == "yes"
  $w.destroy
@@ -143,9 +174,11 @@ def update_label(label)
 sleep 0.2
 xmms2_infer = `xmms2 current`
 xmms2_infer = "Unknown" if xmms2_infer.length < 5
+# need to escape text?
 label.set_markup("<span weight=\"ultrabold\" size=\"xx-large\">#{xmms2_infer}</span>")
 
 end
+
 
 def info_window
 
@@ -158,16 +191,16 @@ vbox = Gtk::VBox.new
 
 hbox = Gtk::HBox.new
 vbox.add hbox
-label = Gtk::Label.new ""
-hbox.add label   
+$label = Gtk::Label.new ""
+hbox.add $label   
+update_label($label)
 
-update_label(label)
       
 hbox2 = Gtk::HBox.new
 vbox.add hbox2
  
 button = Gtk::Button.new "Previous"
-button.signal_connect("button_press_event") { `xmms2 prev`; update_label(label); false}
+button.signal_connect("button_press_event") { $xmms.playlist_set_next_rel(-1); $xmms.playback_tickle;  false}
 hbox2.add button
 
 button = Gtk::Button.new "Play"
@@ -175,7 +208,7 @@ button.signal_connect("button_press_event") { `xmms2 toggleplay`; update_label(l
 hbox2.add button
 
 button = Gtk::Button.new "Next"
-button.signal_connect("button_press_event") { `xmms2 next`; update_label(label); false}
+button.signal_connect("button_press_event") { $xmms.playlist_set_next_rel(1); $xmms.playback_tickle;  false}
 hbox2.add button
 
 #button = Gtk::Button.new "X"
@@ -201,5 +234,6 @@ $icon.signal_connect("button_press_event") do |widget, event|
   end	
 end
 
-# loopy
-Gtk.main
+# Activate!
+ml.run
+
