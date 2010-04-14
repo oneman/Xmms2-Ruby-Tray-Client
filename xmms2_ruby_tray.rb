@@ -63,7 +63,7 @@ if $notification == ""
 else
   $notification.update("#{xmms2_info}\n",nil,nil)
 end
- if $label != ""
+ if $label != "" && $info_window_open == "yes"
   $label.set_markup("<span weight=\"ultrabold\" size=\"xx-large\">#{xmms2_info}</span>")
  end
  #notification.timeout = 2000
@@ -204,7 +204,7 @@ button.signal_connect("button_press_event") { $xmms.playlist_set_next_rel(-1); $
 hbox2.add button
 
 button = Gtk::Button.new "Play"
-button.signal_connect("button_press_event") { `xmms2 toggleplay`; update_label(label); false}
+button.signal_connect("button_press_event") { `xmms2 toggleplay`; update_label($label); false}
 hbox2.add button
 
 button = Gtk::Button.new "Next"
