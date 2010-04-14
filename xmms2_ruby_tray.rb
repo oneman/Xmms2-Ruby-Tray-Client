@@ -141,7 +141,7 @@ end
 
 def update_label(label)
 sleep 0.2
-label.text = `xmms2 info`
+label.text = `xmms2 current`
 
 end
 
