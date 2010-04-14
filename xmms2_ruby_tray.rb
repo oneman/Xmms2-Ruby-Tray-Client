@@ -141,7 +141,9 @@ end
 
 def update_label(label)
 sleep 0.2
-label.text = `xmms2 current`
+xmms2_infer = `xmms2 current`
+xmms2_infer = "Unknown" if xmms2_infer.length < 5
+label.set_markup("<span weight=\"ultrabold\" size=\"xx-large\">#{xmms2_infer}</span>")
 
 end
 
@@ -169,16 +171,16 @@ button.signal_connect("button_press_event") { `xmms2 prev`; update_label(label);
 hbox2.add button
 
 button = Gtk::Button.new "Play"
-button.signal_connect("button_press_event") { `xmms2 toggle_play`; update_label(label); false}
+button.signal_connect("button_press_event") { `xmms2 toggleplay`; update_label(label); false}
 hbox2.add button
 
 button = Gtk::Button.new "Next"
 button.signal_connect("button_press_event") { `xmms2 next`; update_label(label); false}
 hbox2.add button
 
-button = Gtk::Button.new "X"
-button.signal_connect("button_press_event") { set_info_window("closed"); false}
-hbox2.add button
+#button = Gtk::Button.new "X"
+#button.signal_connect("button_press_event") { set_info_window("closed"); false}
+#hbox2.add button
 
 $w.add vbox
 $w.signal_connect('focus-out-event') {|w, e| set_info_window("closed");}
