@@ -57,7 +57,10 @@ xmms.broadcast_playback_current_id.notifier do |id|
 
 xmms2_info = `xmms2 current`
 $icon.tooltip = xmms2_info.chop
-xmms2_info = "Unknown Song" if xmms2_info.length < 5
+if xmms2_info.length < 5
+ xmms2_info = `xmms2 info | grep url`
+ xmms2_info = xmms2_info.split("/").last
+end
 if $notification == ""
  $notification = Notify::Notification.new("#{xmms2_info}\n",nil,nil,nil)
 else
@@ -173,7 +176,10 @@ end
 def update_label(label)
 sleep 0.2
 xmms2_infer = `xmms2 current`
-xmms2_infer = "Unknown" if xmms2_infer.length < 5
+if xmms2_infer.length < 5
+ xmms2_infer = `xmms2 info | grep url`
+ xmms2_infer = xmms2_infer.split("/").last
+end
 # need to escape text?
 label.set_markup("<span weight=\"ultrabold\" size=\"xx-large\">#{xmms2_infer}</span>")
 
