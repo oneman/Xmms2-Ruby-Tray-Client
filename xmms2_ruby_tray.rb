@@ -32,7 +32,7 @@ end
 # GLib mainloop integration is a breeze with the tools provided for GLib in
 # XMMS2. Just one function call sets it all up.
 xmms.add_to_glib_mainloop
-ml = GLib::MainLoop.new(nil, false)
+$ml = GLib::MainLoop.new(nil, false)
 
 $icon = Gtk::StatusIcon.new
 
@@ -55,10 +55,11 @@ xmms.broadcast_playback_current_id.notifier do |id|
     playback_id = id
 
 
-xmms2_info = `xmms2 current`
+xmms2_info = `nyxmms2 status`
+xmms2_info = xmms2_info.split(":")[1]
 $icon.tooltip = xmms2_info.chop
 if xmms2_info.length < 5
- xmms2_info = `xmms2 info | grep url`
+ xmms2_info = `nyxmms2 info | grep url`
  xmms2_info = xmms2_info.split("/").last
 end
 if $notification == ""
@@ -83,7 +84,7 @@ class Gtk::MenuItem
 		args.unshift(meth)
 
 		signal_connect("activate") do
-		  `xmms2 #{meth}`
+		  `nyxmms2 #{meth}`
 			false
 		end
 	end
@@ -133,6 +134,7 @@ menu = Gtk::Menu.new
 
 			item = Gtk::ImageMenuItem.new(Gtk::Stock::QUIT)
 			item.signal_connect("activate") do
+        $ml.quit
 				Gtk.main_quit
 				
 			end
@@ -143,7 +145,7 @@ menu = Gtk::Menu.new
 
 			[
 				[Gtk::Stock::MEDIA_PREVIOUS, :prev],
-				[Gtk::Stock::MEDIA_NEXT, :NEXT]
+				[Gtk::Stock::MEDIA_NEXT, :next]
 			].each do |(stock, meth)|
 				item = Gtk::ImageMenuItem.new(stock)
 				item.set_callback(meth)
@@ -175,9 +177,10 @@ end
 
 def update_label(label)
 sleep 0.2
-xmms2_infer = `xmms2 current`
+xmms2_infer = `nyxmms2 status`
+xmms2_infer = xmms2_infer.split(":")[1]
 if xmms2_infer.length < 5
- xmms2_infer = `xmms2 info | grep url`
+ xmms2_infer = `nyxmms2 info | grep url`
  xmms2_infer = xmms2_infer.split("/").last
 end
 # need to escape text?
@@ -193,6 +196,7 @@ $w.set_default_size 1000, 600
 $w.set_window_position Gtk::Window::POS_CENTER
 $w.decorated = false
 $w.set_border_width 10
+$w.opacity = 0.9
 vbox = Gtk::VBox.new
 
 hbox = Gtk::HBox.new
@@ -210,7 +214,7 @@ button.signal_connect("button_press_event") { $xmms.playlist_set_next_rel(-1); $
 hbox2.add button
 
 button = Gtk::Button.new "Play"
-button.signal_connect("button_press_event") { `xmms2 toggleplay`; update_label($label); false}
+button.signal_connect("button_press_event") { `nyxmms2 toggle`; update_label($label); false}
 hbox2.add button
 
 button = Gtk::Button.new "Next"
@@ -241,5 +245,5 @@ $icon.signal_connect("button_press_event") do |widget, event|
 end
 
 # Activate!
-ml.run
+$ml.run
 
